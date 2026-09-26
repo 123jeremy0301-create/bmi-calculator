@@ -1,11 +1,26 @@
 """
 BMI (Body Mass Index) 計算機 / BMI Calculator
-雙語支援 (Bilingual Support: Traditional Chinese / English)
+多語言支援 (Multilingual Support: 繁體中文 / English / 日本語 / 한국어)
 計算公式 / Formula: BMI = 體重(kg) / 身高(m)^2
 """
 
+import sys
+
+# 確保 Windows 終端機能正常印出日文與韓文字元 (Ensure UTF-8 encoding on Windows console)
+if hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+if hasattr(sys.stdin, "reconfigure"):
+    try:
+        sys.stdin.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 MESSAGES = {
     "zh": {
+        "name": "繁體中文",
         "title": "歡迎使用 BMI 計算機",
         "prompt_height": "請輸入您的身高 (公分 cm): ",
         "prompt_weight": "請輸入您的體重 (公斤 kg): ",
@@ -27,6 +42,7 @@ MESSAGES = {
         },
     },
     "en": {
+        "name": "English",
         "title": "Welcome to BMI Calculator",
         "prompt_height": "Please enter your height (cm): ",
         "prompt_weight": "Please enter your weight (kg): ",
@@ -47,16 +63,60 @@ MESSAGES = {
             "severe_obesity": "Severe obesity (Class 3)",
         },
     },
+    "ja": {
+        "name": "日本語 (Japanese)",
+        "title": "BMI 計算機へようこそ",
+        "prompt_height": "身長を入力してください (cm): ",
+        "prompt_weight": "体重を入力してください (kg): ",
+        "result_title": "【計算結果】",
+        "height": "身長",
+        "weight": "体重",
+        "bmi": "BMI 値",
+        "status": "肥満度判定",
+        "ideal_range": "適正体重の範囲",
+        "err_number": "入力形式が正しくありません。正の数値を入力してください。",
+        "err_positive": "身長と体重は 0 より大きい必要があります。",
+        "categories": {
+            "underweight": "低体重 (痩せ型)",
+            "normal": "普通体重 (標準)",
+            "overweight": "肥満 (1度) / 過体重",
+            "mild_obesity": "肥満 (2度)",
+            "moderate_obesity": "肥満 (3度)",
+            "severe_obesity": "肥満 (4度 / 高度肥満)",
+        },
+    },
+    "ko": {
+        "name": "한국어 (Korean)",
+        "title": "BMI 계산기에 오신 것을 환영합니다",
+        "prompt_height": "키(신장)를 입력해 주세요 (cm): ",
+        "prompt_weight": "몸무게(체중)를 입력해 주세요 (kg): ",
+        "result_title": "【계산 결과】",
+        "height": "신장(키)",
+        "weight": "체중(몸무게)",
+        "bmi": "BMI 지수",
+        "status": "비만도 판정",
+        "ideal_range": "적정(표준) 체중 범위",
+        "err_number": "입력 형식이 올바르지 않습니다. 양수를 입력해 주세요.",
+        "err_positive": "키와 몸무게는 0보다 커야 합니다.",
+        "categories": {
+            "underweight": "저체중",
+            "normal": "정상 체중",
+            "overweight": "과체중",
+            "mild_obesity": "경도 비만 (1단계)",
+            "moderate_obesity": "중등도 비만 (2단계)",
+            "severe_obesity": "고도 비만 (3단계)",
+        },
+    },
 }
 
 
-def calculate_bmi(height_cm: float, weight_kg: float) -> tuple[float, str, str, tuple[float, float]]:
+def calculate_bmi(height_cm: float, weight_kg: float) -> tuple[float, str, dict[str, str], tuple[float, float]]:
     """
-    計算 BMI 值、雙語體位判定與理想體重區間。
-    Calculate BMI value, bilingual category, and ideal weight range.
+    計算 BMI 值、體位鍵值、多語言對照體位判定與理想體重區間。
+    Calculate BMI value, category key, multilingual categories, and ideal weight range.
 
     回傳 / Returns:
-        (bmi, category_zh, category_en, (ideal_min_kg, ideal_max_kg))
+        (bmi, category_key, category_names_dict, (ideal_min_kg, ideal_max_kg))
     """
     if height_cm <= 0 or weight_kg <= 0:
         raise ValueError("Height and weight must be positive.")
@@ -78,79 +138,75 @@ def calculate_bmi(height_cm: float, weight_kg: float) -> tuple[float, str, str, 
     else:
         key = "severe_obesity"
 
-    category_zh = MESSAGES["zh"]["categories"][key]
-    category_en = MESSAGES["en"]["categories"][key]
+    category_names = {
+        lang: MESSAGES[lang]["categories"][key] for lang in MESSAGES
+    }
 
     ideal_min_kg = 18.5 * (height_m ** 2)
     ideal_max_kg = 24.0 * (height_m ** 2)
 
-    return round(bmi, 2), category_zh, category_en, (round(ideal_min_kg, 1), round(ideal_max_kg, 1))
+    return round(bmi, 2), key, category_names, (round(ideal_min_kg, 1), round(ideal_max_kg, 1))
 
 
 def main():
-    print("=" * 55)
-    print("  BMI 計算機 / BMI Calculator (Bilingual)")
-    print("=" * 55)
-    print("語言選擇 / Select Language:")
+    print("=" * 60)
+    print("  BMI 計算機 / BMI Calculator (Multilingual)")
+    print("=" * 60)
+    print("語言選擇 / Select Language / 言語選択 / 언어 선택:")
     print("  1. 繁體中文 (Traditional Chinese)")
     print("  2. English")
-    print("  3. 雙語並列 / Bilingual (預設 / Default)")
+    print("  3. 日本語 (Japanese)")
+    print("  4. 한국어 (Korean)")
+    print("  5. 多語言對照 / All Languages (預設 / Default)")
 
-    lang_choice = input("請選擇 / Please choose [1/2/3] (Enter for 3): ").strip()
-    if lang_choice == "1":
-        mode = "zh"
-    elif lang_choice == "2":
-        mode = "en"
-    else:
-        mode = "bilingual"
+    lang_choice = input("請選擇 / Please choose [1/2/3/4/5] (Enter for 5): ").strip()
+    lang_map = {
+        "1": "zh",
+        "2": "en",
+        "3": "ja",
+        "4": "ko",
+    }
+    mode = lang_map.get(lang_choice, "all")
 
-    print("-" * 55)
+    print("-" * 60)
 
     try:
-        if mode == "zh":
-            h_prompt = MESSAGES["zh"]["prompt_height"]
-            w_prompt = MESSAGES["zh"]["prompt_weight"]
-        elif mode == "en":
-            h_prompt = MESSAGES["en"]["prompt_height"]
-            w_prompt = MESSAGES["en"]["prompt_weight"]
+        if mode in MESSAGES:
+            h_prompt = MESSAGES[mode]["prompt_height"]
+            w_prompt = MESSAGES[mode]["prompt_weight"]
         else:
-            h_prompt = "請輸入身高 / Enter height (cm): "
-            w_prompt = "請輸入體重 / Enter weight (kg): "
+            h_prompt = "請輸入身高 / Height / 身長 / 키 (cm): "
+            w_prompt = "請輸入體重 / Weight / 体重 / 몸무게 (kg): "
 
         height_cm = float(input(h_prompt).strip())
         weight_kg = float(input(w_prompt).strip())
 
-        bmi, cat_zh, cat_en, (min_w, max_w) = calculate_bmi(height_cm, weight_kg)
+        bmi, cat_key, cat_names, (min_w, max_w) = calculate_bmi(height_cm, weight_kg)
 
-        print("\n" + "=" * 55)
-        if mode == "zh":
-            print(MESSAGES["zh"]["result_title"])
-            print(f"  {MESSAGES['zh']['height']}: {height_cm} cm")
-            print(f"  {MESSAGES['zh']['weight']}: {weight_kg} kg")
-            print(f"  {MESSAGES['zh']['bmi']}: {bmi}")
-            print(f"  {MESSAGES['zh']['status']}: {cat_zh}")
-            print(f"  {MESSAGES['zh']['ideal_range']}: {min_w} ~ {max_w} kg")
-        elif mode == "en":
-            print(MESSAGES["en"]["result_title"])
-            print(f"  {MESSAGES['en']['height']}: {height_cm} cm")
-            print(f"  {MESSAGES['en']['weight']}: {weight_kg} kg")
-            print(f"  {MESSAGES['en']['bmi']}: {bmi}")
-            print(f"  {MESSAGES['en']['status']}: {cat_en}")
-            print(f"  {MESSAGES['en']['ideal_range']}: {min_w} ~ {max_w} kg")
+        print("\n" + "=" * 60)
+        if mode in MESSAGES:
+            msg = MESSAGES[mode]
+            print(msg["result_title"])
+            print(f"  {msg['height']}: {height_cm} cm")
+            print(f"  {msg['weight']}: {weight_kg} kg")
+            print(f"  {msg['bmi']}: {bmi}")
+            print(f"  {msg['status']}: {cat_names[mode]}")
+            print(f"  {msg['ideal_range']}: {min_w} ~ {max_w} kg")
         else:
-            print("【計算結果 / Calculation Results】")
-            print(f"  身高 / Height: {height_cm} cm")
-            print(f"  體重 / Weight: {weight_kg} kg")
-            print(f"  BMI 值 / BMI Value: {bmi}")
-            print(f"  體位評估 / Status: {cat_zh} / {cat_en}")
+            print("【計算結果 / Calculation Results / 計算結果 / 계산 결과】")
+            print(f"  身高 / Height / 身長 / 키: {height_cm} cm")
+            print(f"  體重 / Weight / 体重 / 몸무게: {weight_kg} kg")
+            print(f"  BMI 值 / Value / 値 / 지수: {bmi}")
+            print(f"  體位評估 (中文): {cat_names['zh']}")
+            print(f"  Status (English): {cat_names['en']}")
+            print(f"  肥満度判定 (日本語): {cat_names['ja']}")
+            print(f"  비만도 판정 (한국어): {cat_names['ko']}")
             print(f"  理想體重 / Ideal Weight: {min_w} ~ {max_w} kg")
-        print("=" * 55)
+        print("=" * 60)
 
     except ValueError:
-        if mode == "zh":
-            print(f"\n[錯誤] {MESSAGES['zh']['err_number']}")
-        elif mode == "en":
-            print(f"\n[Error] {MESSAGES['en']['err_number']}")
+        if mode in MESSAGES:
+            print(f"\n[錯誤/Error] {MESSAGES[mode]['err_number']}")
         else:
             print("\n[錯誤 / Error] 請輸入有效的正數數字 / Please enter valid positive numbers.")
 
